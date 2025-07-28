@@ -1,0 +1,3 @@
+    # .gitignore (inside the backend folder)
+node_modules/
+.env
