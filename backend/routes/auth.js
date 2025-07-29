@@ -11,7 +11,6 @@ const router = express.Router();
 
 // @route   GET /api/auth
 // @desc    Get logged-in user's data
-// @access  Private
 router.get('/', auth, async (req, res) => {
   try {
     const user = await pool.query('SELECT id, email, created_at FROM users WHERE id = $1', [req.user.id]);
@@ -20,31 +19,40 @@ router.get('/', auth, async (req, res) => {
     }
     res.json(user.rows[0]);
   } catch (err) {
-    console.error(err.message);
+    console.error('Error in GET /api/auth:', err.message);
     res.status(500).send('Server Error');
   }
 });
 
+
 // @route   POST /api/auth/register
 // @desc    Register a new user
-// @access  Public
 router.post('/register', async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ msg: 'Please enter all fields' });
+
+  // More robust validation
+  if (!email || !password || password.length < 6) {
+    return res.status(400).json({ msg: 'Please provide a valid email and a password of at least 6 characters.' });
   }
+
   try {
     const userExists = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     if (userExists.rows.length > 0) {
-      return res.status(400).json({ msg: 'User already exists' });
+      return res.status(400).json({ msg: 'User with this email already exists.' });
     }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-    const newUser = await pool.query(
-      'INSERT INTO users (email, hashed_pw) VALUES ($1, $2) RETURNING id, email',
+
+    // FIX: Ensure 'created_at' is returned
+    const newUserResult = await pool.query(
+      'INSERT INTO users (email, hashed_pw) VALUES ($1, $2) RETURNING id, email, created_at',
       [email, hashedPassword]
     );
-    const payload = { user: { id: newUser.rows[0].id } };
+    const newUser = newUserResult.rows[0];
+
+    const payload = { user: { id: newUser.id } };
+
     jwt.sign(
       payload,
       process.env.JWT_SECRET,
@@ -53,19 +61,19 @@ router.post('/register', async (req, res) => {
         if (err) throw err;
         res.status(201).json({
           token,
-          user: newUser.rows[0], // SOLUTION: Send back the new user data
+          user: newUser, // Send the complete new user object
         });
       }
     );
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Error in POST /api/auth/register:', err.message);
+    res.status(500).send('Server Error');
   }
 });
 
+
 // @route   POST /api/auth/login
 // @desc    Authenticate user & get token (Login)
-// @access  Public
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -90,15 +98,16 @@ router.post('/login', async (req, res) => {
                 if (err) throw err;
                 res.json({
                   token,
-                  user: { // SOLUTION: Send back the user data
+                  user: { // FIX: Ensure 'created_at' is included
                     id: user.id,
                     email: user.email,
+                    created_at: user.created_at
                   }
                 });
             }
         );
     } catch (err) {
-        console.error(err.message);
+        console.error('Error in POST /api/auth/login:', err.message);
         res.status(500).send('Server error');
     }
 });
