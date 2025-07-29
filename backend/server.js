@@ -17,6 +17,7 @@ app.use('/api/categories', require('./routes/categories'));
 app.use('/api/recurring', require('./routes/recurring'));
 app.use('/api/goals', require('./routes/goals'));
 app.use('/api/funds', require('./routes/funds'));
+app.use('/api/setup', require('./routes/setup'));
 app.use('/api/budgets', require('./routes/budgets'));
 
 // This is just a test route, it's fine here
