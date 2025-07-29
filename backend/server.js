@@ -2,27 +2,24 @@
 
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors'); // 1. IMPORT CORS
+const cors = require('cors');
 const cronService = require('./services/cronService');
 require('./config/db'); // This line connects to your database
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// --- THIS IS THE CRITICAL FIX ---
-// 2. CONFIGURE AND USE CORS
-// This tells your backend to accept requests from your live frontend URL.
+// This is the crucial CORS configuration
 const corsOptions = {
   origin: 'https://zenith-expense-tracker-eg5q.vercel.app', // Your Vercel URL
   optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
-// --- END OF FIX ---
 
 // Middleware to parse incoming JSON
 app.use(express.json());
 
-// --- Define API Routes (only once) ---
+// --- Define API Routes ---
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/receipts', require('./routes/receipts'));
 app.use('/api/categories', require('./routes/categories'));
@@ -41,3 +38,5 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   cronService.start();
 });
+
+// This is a small, harmless change to force a redeployment.
