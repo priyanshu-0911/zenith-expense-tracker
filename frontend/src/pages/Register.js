@@ -2,7 +2,8 @@
 
 import React, { useState, useContext, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock } from 'lucide-react';
+// Import the User icon
+import { Mail, Lock, User } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import AuthContext from '../context/auth/authContext';
 
@@ -11,11 +12,14 @@ const Register = () => {
   const navigate = useNavigate();
 
   const [user, setUser] = useState({
+    // Add username to state
+    username: '',
     email: '',
     password: '',
     confirmPassword: '',
   });
-  const { email, password, confirmPassword } = user;
+  // Destructure username
+  const { username, email, password, confirmPassword } = user;
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -35,7 +39,8 @@ const Register = () => {
     if (password !== confirmPassword) {
       toast.error('Passwords do not match');
     } else {
-      register({ email, password });
+      // Pass the username to the register function
+      register({ username, email, password });
     }
   };
 
@@ -51,6 +56,27 @@ const Register = () => {
 
         <div className="rounded-xl bg-white p-8 shadow-lg">
           <form className="space-y-6" onSubmit={onSubmit}>
+            {/* --- Add Username Input Field --- */}
+            <div>
+              <label htmlFor="username" className="sr-only">Username</label>
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <User className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  autoComplete="username"
+                  required
+                  className="w-full rounded-md border border-gray-300 py-2.5 pl-10 pr-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="Username"
+                  value={username}
+                  onChange={onChange}
+                />
+              </div>
+            </div>
+
             <div>
               <label htmlFor="email" className="sr-only">Email address</label>
               <div className="relative">
