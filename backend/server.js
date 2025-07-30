@@ -9,11 +9,25 @@ require('./config/db'); // This line connects to your database
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// This is the crucial CORS configuration
+// --- This is the new, more flexible CORS configuration ---
+// List of all URLs that are allowed to make requests to your backend
+const allowedOrigins = [
+  'https://zenith-expense-tracker-eg5q.vercel.app', // Your production frontend
+  'http://localhost:3000'                           // Your local development frontend
+];
+
 const corsOptions = {
-  origin: 'https://zenith-expense-tracker-eg5q.vercel.app', // Your Vercel URL
+  origin: function (origin, callback) {
+    // This logic allows your frontend URLs and Vercel preview URLs
+    if (!origin || allowedOrigins.includes(origin) || /\.vercel\.app$/.test(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   optionsSuccessStatus: 200
 };
+
 app.use(cors(corsOptions));
 
 // Middleware to parse incoming JSON
@@ -38,5 +52,3 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   cronService.start();
 });
-
-// This is a small, harmless change to force a redeployment.
