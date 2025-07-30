@@ -13,7 +13,8 @@ const router = express.Router();
 // @desc    Get logged-in user's data
 router.get('/', auth, async (req, res) => {
   try {
-    const user = await pool.query('SELECT id, email, created_at FROM users WHERE id = $1', [req.user.id]);
+    // Select username as well
+    const user = await pool.query('SELECT id, username, email, created_at FROM users WHERE id = $1', [req.user.id]);
     if (user.rows.length === 0) {
       return res.status(404).json({ msg: 'User not found' });
     }
@@ -28,26 +29,27 @@ router.get('/', auth, async (req, res) => {
 // @route   POST /api/auth/register
 // @desc    Register a new user
 router.post('/register', async (req, res) => {
-  const { email, password } = req.body;
+  // --- FIX: Read 'username' from the request body ---
+  const { username, email, password } = req.body;
 
-  // More robust validation
-  if (!email || !password || password.length < 6) {
-    return res.status(400).json({ msg: 'Please provide a valid email and a password of at least 6 characters.' });
+  // --- FIX: Add validation for username ---
+  if (!username || !email || !password || password.length < 6) {
+    return res.status(400).json({ msg: 'Please provide a username, a valid email, and a password of at least 6 characters.' });
   }
 
   try {
-    const userExists = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const userExists = await pool.query('SELECT * FROM users WHERE email = $1 OR username = $2', [email, username]);
     if (userExists.rows.length > 0) {
-      return res.status(400).json({ msg: 'User with this email already exists.' });
+      return res.status(400).json({ msg: 'User with this email or username already exists.' });
     }
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // FIX: Ensure 'created_at' is returned
+    // --- FIX: Insert the 'username' into the database ---
     const newUserResult = await pool.query(
-      'INSERT INTO users (email, hashed_pw) VALUES ($1, $2) RETURNING id, email, created_at',
-      [email, hashedPassword]
+      'INSERT INTO users (username, email, hashed_pw) VALUES ($1, $2, $3) RETURNING id, username, email, created_at',
+      [username, email, hashedPassword]
     );
     const newUser = newUserResult.rows[0];
 
@@ -61,7 +63,7 @@ router.post('/register', async (req, res) => {
         if (err) throw err;
         res.status(201).json({
           token,
-          user: newUser, // Send the complete new user object
+          user: newUser,
         });
       }
     );
@@ -97,12 +99,13 @@ router.post('/login', async (req, res) => {
             (err, token) => {
                 if (err) throw err;
                 res.json({
-                  token,
-                  user: { // FIX: Ensure 'created_at' is included
-                    id: user.id,
-                    email: user.email,
-                    created_at: user.created_at
-                  }
+                    token,
+                    user: {
+                      id: user.id,
+                      username: user.username, // Include username on login
+                      email: user.email,
+                      created_at: user.created_at
+                    }
                 });
             }
         );
